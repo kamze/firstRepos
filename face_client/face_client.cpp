@@ -162,6 +162,7 @@ void Client::requestNewFortune()
 void Client::decode(){
     QDataStream in(tcpSocket);
     in.setVersion(QDataStream::Qt_4_0);
+    qDebug() << "size tcp socket";
 
     if(blocksize == 0){
         if(tcpSocket->bytesAvailable() < sizeof(qint32)){
@@ -169,7 +170,7 @@ void Client::decode(){
         }
         // ON LIS LES 4 PREMIER BYTE
         in >> blocksize;
-        //qDebug() << "Size avaiable : " << tcpSocket->bytesAvailable();
+        qDebug() << "Size avaiable : " << blocksize;
     }
 
     if(tcpSocket->bytesAvailable() < blocksize){

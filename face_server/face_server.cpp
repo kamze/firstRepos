@@ -1,6 +1,7 @@
 #include <QtWidgets>
 #include <QtNetwork>
 #include <QTimer>
+#include <QDebug>
 
 #include <stdlib.h>
 
@@ -102,7 +103,7 @@ Server::Server(QWidget *parent)
 }
 
 
-//---------------------------------------------------------------------------
+//-----------------------END constructor---------------------------------------
 //fonction pour envoyé
 void Server::sendPacket()
 {
@@ -210,21 +211,38 @@ void Server::sessionOpened()
 QByteArray Server::packetGeneration(){
     //struct timeval date;
     //gettimeofday(&date,NULL);
-
     QByteArray block;
-    QDataStream out(&block,QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_4_0);
+    QTcpSocket *clientConnection = tcpServer->nextPendingConnection();
 
-    //out << (quint32) (8 + compressed_data.size() + 4);
-    out << (quint32) (compressed_data.size() + 4);
-   // out << (quint32)date.tv_sec;
-    //out << (quint32)date.tv_usec;
 
-    out << (quint32)compressed_data.size();
-    for(int i=0;i < compressed_data.size();i++){
-        out << compressed_data[i];
-    }
+    if(clientConnection==NULL){ qDebug() << "tcpServerNULL";}
+    if(clientConnection!=NULL){
+        QDataStream out(&block,QIODevice::WriteOnly);
+        out.setVersion(QDataStream::Qt_4_0);
 
+        //out << (quint32) (8 + compressed_data.size() + 4);
+        out << (quint32) (compressed_data.size() + 4);
+        // out << (quint32)date.tv_sec;
+        //out << (quint32)date.tv_usec;
+
+        out << (quint32)compressed_data.size();
+        for(int i=0;i < compressed_data.size();i++){
+            out << compressed_data[i];
+        }
+
+
+        connect(clientConnection, &QAbstractSocket::disconnected,
+                clientConnection, &QObject::deleteLater);
+
+
+        clientConnection->write(block);
+        //clientConnection->disconnectFromHost();
+        qDebug() << "tcpServerNotNULL";
+
+
+        qDebug() << "Size avaiable : " << block.size();
+
+        }
     return block;
 }
 
