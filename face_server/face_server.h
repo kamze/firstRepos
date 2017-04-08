@@ -8,6 +8,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <QtNetwork>
 
 
 
@@ -27,6 +28,7 @@ public:
     cv::CascadeClassifier faceClassifier;
     cv::Mat flip_image;
 
+
 private slots:
     void sessionOpened();
     //void sendFortune();
@@ -34,6 +36,7 @@ private slots:
 
 
 private:
+    void setupNewConnection();
     void takePicture();
     void faceDetection();
     void imageCompression();
@@ -47,6 +50,8 @@ private:
     QTcpServer *tcpServer;
     QStringList fortunes;
     QNetworkSession *networkSession;
+    std::vector<QTcpSocket*> clientsConnectees;
+
 };
 
 #endif

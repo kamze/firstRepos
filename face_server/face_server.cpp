@@ -25,11 +25,6 @@ Server::Server(QWidget *parent)
     Camera.set( CV_CAP_PROP_FRAME_WIDTH, 256 );
     Camera.set( CV_CAP_PROP_FRAME_HEIGHT, 144 );
 
-    //Si On utilise une plus grande résolution comme si dessous (512 et 288, alors l'image est trop grande et met trop de temps entre chaque refresh)
-
-    //Camera.set( CV_CAP_PROP_FRAME_WIDTH, 512 );
-    //Camera.set( CV_CAP_PROP_FRAME_HEIGHT, 288 );
-
 //setup the image type : here is colorful we should change CV_8UC3 to block and white CV_8UC1 is gray
     Camera.set( CV_CAP_PROP_FORMAT, CV_8UC3 );
     Camera.open();
@@ -71,7 +66,7 @@ Server::Server(QWidget *parent)
         quitButton->setAutoDefault(false);
         connect(quitButton, &QAbstractButton::clicked, this, &QWidget::close);
         // pour envoyer le button on le use plus car on veut automatoqiement envoyer des  image  successive
-        //connect(tcpServer, &QTcpServer::newConnection, this, &Server::sendFortune);
+        connect(tcpServer,&QTcpServer::newConnection,this,&Server::setupNewConnection);
 
         QHBoxLayout *buttonLayout = new QHBoxLayout;
         buttonLayout->addStretch(1);
@@ -105,6 +100,9 @@ Server::Server(QWidget *parent)
 
 //-----------------------END constructor---------------------------------------
 //fonction pour envoyé
+
+
+
 void Server::sendPacket()
 {
 takePicture();
@@ -151,7 +149,13 @@ void Server::faceDetection()
 }
 
 //fonction compression image
+void Server::setupNewConnection(){
 
+    QTcpSocket *clientSock = tcpServer->nextPendingConnection();
+    //connect(clientSock,&QAbstractSocket::disconnected,clientSock,&QObject::deleteLater);
+
+    clientsConnectees.push_back(clientSock);
+}
 void Server::imageCompression()
 {
     std::vector<int> params;
@@ -209,40 +213,27 @@ void Server::sessionOpened()
 }
 
 QByteArray Server::packetGeneration(){
-    //struct timeval date;
-    //gettimeofday(&date,NULL);
     QByteArray block;
-    QTcpSocket *clientConnection = tcpServer->nextPendingConnection();
-
-
-    if(clientConnection==NULL){ qDebug() << "tcpServerNULL";}
-    if(clientConnection!=NULL){
         QDataStream out(&block,QIODevice::WriteOnly);
         out.setVersion(QDataStream::Qt_4_0);
 
-        //out << (quint32) (8 + compressed_data.size() + 4);
         out << (quint32) (compressed_data.size() + 4);
-        // out << (quint32)date.tv_sec;
-        //out << (quint32)date.tv_usec;
 
         out << (quint32)compressed_data.size();
+
         for(int i=0;i < compressed_data.size();i++){
             out << compressed_data[i];
-        }
+}
+        for(int i = 0; i < clientsConnectees.size(); i++){
+
+            clientsConnectees[i]->write(block);
 
 
-        connect(clientConnection, &QAbstractSocket::disconnected,
-                clientConnection, &QObject::deleteLater);
-
-
-        clientConnection->write(block);
-        //clientConnection->disconnectFromHost();
-        qDebug() << "tcpServerNotNULL";
+       }
 
 
         qDebug() << "Size avaiable : " << block.size();
 
-        }
     return block;
 }
 
@@ -256,26 +247,4 @@ QImage Server::MatToQimage(cv::Mat inMat){
 
 }
 
-/* on use pas
-void Server::sendFortune()
-{
-    QByteArray block;
-    QDataStream out(&block, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_4_0);
 
-    //out << fortunes.at(qrand() % fortunes.size());
-
-    QTime time = QTime::currentTime();
-    QString format= "hh:mm:ss.zzz";
-    QString timeString = time.toString(format);
-
-    out << timeString;
-
-    QTcpSocket *clientConnection = tcpServer->nextPendingConnection();
-    connect(clientConnection, &QAbstractSocket::disconnected,
-            clientConnection, &QObject::deleteLater);
-
-    clientConnection->write(block);
-    clientConnection->disconnectFromHost();
-}
-*/
