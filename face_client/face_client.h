@@ -52,7 +52,6 @@ private:
     QPushButton *getFortuneButton;
 
     QTcpSocket *tcpSocket;
-    QDataStream in;
     QString currentFortune;
 
     QNetworkSession *networkSession;

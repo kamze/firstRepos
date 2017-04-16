@@ -215,11 +215,11 @@ void Server::sessionOpened()
 QByteArray Server::packetGeneration(){
     QByteArray block;
         QDataStream out(&block,QIODevice::WriteOnly);
-        out.setVersion(QDataStream::Qt_4_0);
+        out.setVersion(QDataStream::Qt_5_0);
 
         out << (quint32) (compressed_data.size() + 4);
 
-        out << (quint32)compressed_data.size();
+        out << (quint32) compressed_data.size();
 
         for(int i=0;i < compressed_data.size();i++){
             out << compressed_data[i];

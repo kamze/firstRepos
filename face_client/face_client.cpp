@@ -59,8 +59,8 @@ Client::Client(QWidget *parent)
     buttonBox->addButton(getFortuneButton, QDialogButtonBox::ActionRole);
     buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
 
-    in.setDevice(tcpSocket);
-    in.setVersion(QDataStream::Qt_4_0);
+    //in.setDevice(tcpSocket);
+   // in.setVersion(QDataStream::Qt_4_0);
 
     connect(hostCombo, &QComboBox::editTextChanged,
             this, &Client::enableGetFortuneButton);
@@ -139,16 +139,11 @@ void Client::requestNewFortune()
 
 
 void Client::decode(){
+
+
     QDataStream in(tcpSocket);
     in.setVersion(QDataStream::Qt_4_0);
-    qDebug() << "bytesAvailable : " << tcpSocket->bytesAvailable();
 
-    in >> blocksize;
-/*
-    QByteArray block;
-    block.reserve(tcpSocket->bytesAvailable());
-    block = tcpSocket->readAll();
-    qDebug() << block.size();*/
     qDebug() << "Size avaiable : " << blocksize;
 
     if(blocksize == 0){
@@ -158,28 +153,18 @@ void Client::decode(){
 
     }
 
+    qDebug() << "bytesAvailable : " << tcpSocket->bytesAvailable();
+
+    in >> blocksize;
+
     if(tcpSocket->bytesAvailable() < blocksize){
         return;
     }
 
-decompressImage();
-qDebug() << "bytes  Available after image : " << tcpSocket->bytesAvailable();
-/*
-quint8 b;
-for(int i=0;0 < tcpSocket->bytesAvailable();i++){
-    in >> b;
-}*/
-qDebug() << "bytes  Available end : " << tcpSocket->bytesAvailable();
-
-    blocksize = 0;
-    qDebug() << "---------------------- ";
-
-}
-
-void Client::decompressImage()
-{
     std::vector<uchar> compressed_data;
     quint32 imgSize;
+    qDebug() << "imgSize  read: " << imgSize;
+
     in >> imgSize;
 
     qDebug() << "imgSize : " << imgSize;
@@ -193,6 +178,13 @@ void Client::decompressImage()
 
     cv::Mat image = cv::imdecode(compressed_data,-1);
     imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(image)));
+    blocksize = 0;
+
+}
+
+void Client::decompressImage()
+{
+
 }
 
 QImage Client::MatToQimage(cv::Mat inMat){
