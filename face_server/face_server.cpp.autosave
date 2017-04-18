@@ -30,7 +30,7 @@ Server::Server(QWidget *parent)
     Camera.open();
 
 
-    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    sendowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     statusLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
 
 

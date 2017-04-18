@@ -59,15 +59,17 @@ Client::Client(QWidget *parent)
     buttonBox->addButton(getFortuneButton, QDialogButtonBox::ActionRole);
     buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
 
-    in.setDevice(tcpSocket);
-    in.setVersion(QDataStream::Qt_4_0);
+    //in.setDevice(tcpSocket);
+   // in.setVersion(QDataStream::Qt_4_0);
 
     connect(hostCombo, &QComboBox::editTextChanged,
             this, &Client::enableGetFortuneButton);
     connect(portLineEdit, &QLineEdit::textChanged,
             this, &Client::enableGetFortuneButton);
+
     connect(getFortuneButton, &QAbstractButton::clicked,
-            this, &Client::requestNewFortune);
+           this, &Client::requestNewFortune);
+
     connect(quitButton, &QAbstractButton::clicked, this, &QWidget::close);
     connect(tcpSocket, &QIODevice::readyRead, this, &Client::decode);
     typedef void (QAbstractSocket::*QAbstractSocketErrorSignal)(QAbstractSocket::SocketError);
@@ -93,8 +95,6 @@ Client::Client(QWidget *parent)
     mainLayout->addWidget(hostCombo, 0, 1);
     mainLayout->addWidget(portLabel, 1, 0);
     mainLayout->addWidget(portLineEdit, 1, 1);
-    //mainLayout->addWidget(statusLabel, 2, 0, 1, 2);
-    //mainLayout->addWidget(statusLabel1, 3, 0, 1, 2);
     mainLayout->addWidget(buttonBox, 2,  0, 1, 2);
     mainLayout->addWidget(imageLbl, 2, 2);
 
@@ -123,70 +123,52 @@ Client::Client(QWidget *parent)
         statusLabel->setText(tr("Opening network session."));
         networkSession->open();
     }
+blocksize=0;
+
 }
 
 void Client::requestNewFortune()
 {
+    qDebug() << "requestNewFortune : ";
+
     getFortuneButton->setEnabled(false);
     tcpSocket->abort();
     tcpSocket->connectToHost(hostCombo->currentText(),
                              portLineEdit->text().toInt());
 }
-/*void Client::readFortune()
-{
-    //in.startTransaction();
-
-    QString nextFortune;
-    in >> nextFortune;
-
-
-    if (nextFortune == currentFortune) {
-        //QTimer::singleShot(0, this, &Client::requestNewFortune);
-        return;
-    }
-
-    currentFortune = nextFortune;
-    statusLabel->setText(currentFortune);
-
-
-    QTime time = QTime::currentTime();
-    QString format= "hh:mm:ss.zzz";
-    QString timeString = time.toString(format);
-    statusLabel1->setText(timeString);
-
-    getFortuneButton->setEnabled(true);
-}
-*/
 
 
 void Client::decode(){
+
+
     QDataStream in(tcpSocket);
     in.setVersion(QDataStream::Qt_4_0);
+
+    qDebug() << "Size avaiable : " << blocksize;
 
     if(blocksize == 0){
         if(tcpSocket->bytesAvailable() < sizeof(qint32)){
             return;
         }
-        // ON LIS LES 4 PREMIER BYTE
-        in >> blocksize;
-        //qDebug() << "Size avaiable : " << tcpSocket->bytesAvailable();
+
     }
+
+    qDebug() << "bytesAvailable : " << tcpSocket->bytesAvailable();
+
+    in >> blocksize;
 
     if(tcpSocket->bytesAvailable() < blocksize){
         return;
     }
 
-decompressImage();
-
-    blocksize = 0;
-
-}
-
-void Client::decompressImage()
-{
     std::vector<uchar> compressed_data;
     quint32 imgSize;
+    qDebug() << "imgSize  read: " << imgSize;
+
     in >> imgSize;
+
+    qDebug() << "imgSize : " << imgSize;
+
     quint8 b;
     for(int i=0;i < imgSize;i++){
         in >> b;
@@ -196,6 +178,13 @@ void Client::decompressImage()
 
     cv::Mat image = cv::imdecode(compressed_data,-1);
     imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(image)));
+    blocksize = 0;
+
+}
+
+void Client::decompressImage()
+{
+
 }
 
 QImage Client::MatToQimage(cv::Mat inMat){
