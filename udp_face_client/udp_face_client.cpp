@@ -1,5 +1,4 @@
-#include "face_client.h"
-//#include "ui_face_client.h"
+#include "udp_face_client.h"
 
 #include <QtWidgets>
 #include <QtNetwork>
@@ -68,10 +67,11 @@ Client::Client(QWidget *parent)
            this, &Client::requestNewFortune);
 
     connect(quitButton, &QAbstractButton::clicked, this, &QWidget::close);
-    connect(tcpSocket, &QIODevice::readyRead, this, &Client::decode);
+
     typedef void (QAbstractSocket::*QAbstractSocketErrorSignal)(QAbstractSocket::SocketError);
     connect(tcpSocket, static_cast<QAbstractSocketErrorSignal>(&QAbstractSocket::error),
             this, &Client::displayError);
+    connect(tcpSocket, &QIODevice::readyRead, this, &Client::decode);
 
     QGridLayout *mainLayout = Q_NULLPTR;
     if (QGuiApplication::styleHints()->showIsFullScreen()) {

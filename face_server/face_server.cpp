@@ -34,7 +34,6 @@ Server::Server(QWidget *parent)
     statusLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
 
 
-
     QNetworkConfigurationManager manager;
     if (manager.capabilities() & QNetworkConfigurationManager::NetworkSessionRequired) {
         // Get saved network configuration
@@ -116,20 +115,11 @@ packetGeneration();
 void Server::takePicture()
 {
     cv::Mat image;
-
-    //set camera params
-
-    //Open camera
-    //std::cout<<"Opening Camera..."<<std::endl;
-
     //Start capture
     Camera.grab();
     Camera.retrieve ( image);
 
     //std::cout<<"Stop camera..."<<std::endl;
-
-    //save image
-// why: why do u flip the image : because the camera is roll
     cv::flip(image,flip_image,0);
 }
 
@@ -217,7 +207,7 @@ QByteArray Server::packetGeneration(){
         QDataStream out(&block,QIODevice::WriteOnly);
         out.setVersion(QDataStream::Qt_5_0);
 
-        out << (quint32) (compressed_data.size() + 4);
+        //out << (quint32) (compressed_data.size() + 4);
 
         out << (quint32) compressed_data.size();
 
@@ -227,8 +217,6 @@ QByteArray Server::packetGeneration(){
         for(int i = 0; i < clientsConnectees.size(); i++){
 
             clientsConnectees[i]->write(block);
-
-
        }
 
 

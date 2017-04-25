@@ -2,16 +2,16 @@
 #include <QtNetwork>
 #include <QTimer>
 #include <QDebug>
-
+#include <QUdpSocket>
 #include <stdlib.h>
 
-#include "face_server.h"
+#include "udp_face_server.h"
 
 Server::Server(QWidget *parent)
     : QDialog(parent)
     , statusLabel(new QLabel)
     , imageLbl(new QLabel)
-    , tcpServer(Q_NULLPTR)
+//    , tcpServer(Q_NULLPTR)
     , networkSession(0)
 {
     //-------------------camera setup------------------------
@@ -30,9 +30,8 @@ Server::Server(QWidget *parent)
     Camera.open();
 
 
-    sendowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     statusLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-
 
 
     QNetworkConfigurationManager manager;
@@ -49,6 +48,10 @@ Server::Server(QWidget *parent)
             QNetworkConfiguration::Discovered) {
             config = manager.defaultConfiguration();
         }
+        //--------------UDP-----------------------
+        udpSocket = new QUdpSocket(this);
+        //connect(timer, SIGNAL(timeout()), this, SLOT(sendDatagram()));
+        // **        connect(tcpServer,&QTcpServer::newConnection,this,&Server::setupNewConnection);
 
         networkSession = new QNetworkSession(config, this);
         connect(networkSession, &QNetworkSession::opened, this, &Server::sessionOpened);
@@ -66,7 +69,6 @@ Server::Server(QWidget *parent)
         quitButton->setAutoDefault(false);
         connect(quitButton, &QAbstractButton::clicked, this, &QWidget::close);
         // pour envoyer le button on le use plus car on veut automatoqiement envoyer des  image  successive
-        connect(tcpServer,&QTcpServer::newConnection,this,&Server::setupNewConnection);
 
         QHBoxLayout *buttonLayout = new QHBoxLayout;
         buttonLayout->addStretch(1);
@@ -99,9 +101,6 @@ Server::Server(QWidget *parent)
 
 
 //-----------------------END constructor---------------------------------------
-//fonction pour envoyé
-
-
 
 void Server::sendPacket()
 {
@@ -109,27 +108,17 @@ takePicture();
 faceDetection();
 imageCompression();
 affichageVideo();
-packetGeneration();
 }
 
 //fonction pour avoir l'image
 void Server::takePicture()
 {
     cv::Mat image;
-
-    //set camera params
-
-    //Open camera
-    //std::cout<<"Opening Camera..."<<std::endl;
-
     //Start capture
     Camera.grab();
     Camera.retrieve ( image);
 
     //std::cout<<"Stop camera..."<<std::endl;
-
-    //save image
-// why: why do u flip the image : because the camera is roll
     cv::flip(image,flip_image,0);
 }
 
@@ -151,10 +140,8 @@ void Server::faceDetection()
 //fonction compression image
 void Server::setupNewConnection(){
 
-    QTcpSocket *clientSock = tcpServer->nextPendingConnection();
-    //connect(clientSock,&QAbstractSocket::disconnected,clientSock,&QObject::deleteLater);
-
-    clientsConnectees.push_back(clientSock);
+    QUdpSocket *clientSock= udpSocket->nextPendingConnection();
+clientsConnectees.push_back(clientSock);
 }
 void Server::imageCompression()
 {
@@ -184,7 +171,7 @@ void Server::sessionOpened()
         settings.setValue(QLatin1String("DefaultNetworkConfiguration"), id);
         settings.endGroup();
     }
-
+/*
     tcpServer = new QTcpServer(this);
     if (!tcpServer->listen()) {
         QMessageBox::critical(this, tr("Fortune Server"),
@@ -193,6 +180,10 @@ void Server::sessionOpened()
         close();
         return;
     }
+    */
+
+    // faut faire meme chose qu'en haut mais pour udp
+
     QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
     // use the first non-localhost IPv4 address
@@ -206,36 +197,13 @@ void Server::sessionOpened()
     // if we did not find one, use IPv4 localhost
     if (ipAddress.isEmpty())
         ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
-    statusLabel->setText(tr("The server is running on\n\nIP: %1\nport: %2\n\n"
+    statusLabel->setText(tr("The server is running on\n\nIP: %1\nport: 1234\n\n"
                             "Run the Fortune Client example now.")
-                         .arg(ipAddress).arg(tcpServer->serverPort()));
+                         .arg(ipAddress));
 
 }
 
-QByteArray Server::packetGeneration(){
-    QByteArray block;
-        QDataStream out(&block,QIODevice::WriteOnly);
-        out.setVersion(QDataStream::Qt_5_0);
 
-        out << (quint32) (compressed_data.size() + 4);
-
-        out << (quint32) compressed_data.size();
-
-        for(int i=0;i < compressed_data.size();i++){
-            out << compressed_data[i];
-}
-        for(int i = 0; i < clientsConnectees.size(); i++){
-
-            clientsConnectees[i]->write(block);
-
-
-       }
-
-
-        qDebug() << "Size avaiable : " << block.size();
-
-    return block;
-}
 
 QImage Server::MatToQimage(cv::Mat inMat){
     QImage image( inMat.data,
