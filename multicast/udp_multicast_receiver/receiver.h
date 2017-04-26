@@ -3,11 +3,6 @@
 
 #include <QDialog>
 #include <QHostAddress>
-#include <raspicam/raspicam_cv.h>
-#include <QPixmap>
-#include <QImage>
-#include <QTimer>
-
 
 class QLabel;
 class QPushButton;
@@ -28,9 +23,6 @@ private:
     QPushButton *quitButton;
     QUdpSocket *udpSocket;
     QHostAddress groupAddress;
-    QLabel *imageLbl;
-    QImage MatToQimage(cv::Mat img);
-
 };
 
 #endif

@@ -146,7 +146,7 @@ void Client::decode(){
     quint8 b;
     quint32 imgSize;
 // si on veut que utiliser ip et non pas via localhost faut decommenter
-   // if(tcpSocket->waitForReadyRead()){
+    if(tcpSocket->waitForReadyRead()){
         qDebug() << "waitForReadyRead: bytesAvailable : " << tcpSocket->bytesAvailable();
         in >> imgSize;
         qDebug() << "imgSize : " << imgSize;
@@ -154,10 +154,8 @@ void Client::decode(){
         for(int i=0;i < imgSize;i++){
             in >> b;
             compressed_data.push_back((uchar)b);
-            qDebug() << "after: bytesAvailable : " << tcpSocket->bytesAvailable();
-
 }
-    //}
+    }
     cv::Mat image = cv::imdecode(compressed_data,-1);
 
     imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(image)));

@@ -10,7 +10,6 @@ Receiver::Receiver(QWidget *parent)
 
     statusLabel = new QLabel(tr("Listening for multicasted messages"));
     quitButton = new QPushButton(tr("&Quit"));
-    imageLbl = new QLabel();
 
     udpSocket = new QUdpSocket(this);
     udpSocket->bind(QHostAddress::AnyIPv4, 45454, QUdpSocket::ShareAddress);
@@ -28,8 +27,8 @@ Receiver::Receiver(QWidget *parent)
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addWidget(statusLabel);
     mainLayout->addLayout(buttonLayout);
-    mainLayout->addWidget(imageLbl);
     setLayout(mainLayout);
+
     setWindowTitle(tr("Multicast Receiver"));
 }
 
@@ -40,28 +39,6 @@ void Receiver::processPendingDatagrams()
         datagram.resize(udpSocket->pendingDatagramSize());
         udpSocket->readDatagram(datagram.data(), datagram.size());
         statusLabel->setText(tr("Received datagram: \"%1\"")
-                             .arg(datagram.size()));
-
-        qDebug() << "datagram.size : " << datagram.size();
-        std::vector<uchar> compressed_data;
-        quint8 b;
-
-        for(int i=0;i < datagram.size();i++){
-             b= datagram.at(i);
-            compressed_data.push_back((uchar)b);
-}
-    cv::Mat image = cv::imdecode(compressed_data,-1);
-    imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(image)));
+                             .arg(datagram.data()));
     }
-
-}
-
-QImage Receiver::MatToQimage(cv::Mat inMat){
-    QImage image( inMat.data,
-                              inMat.cols, inMat.rows,
-                              static_cast<int>(inMat.step),
-                              QImage::Format_RGB888 );
-
-    return image;
-
 }

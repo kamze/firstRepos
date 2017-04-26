@@ -3,14 +3,6 @@
 
 #include <QDialog>
 #include <QHostAddress>
-#include <QDialog>
-#include <raspicam/raspicam_cv.h>
-// les 3 pour CascadeClassifier
-#include <opencv2/objdetect/objdetect.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
-#include <QtNetwork>
 
 class QDialogButtonBox;
 class QLabel;
@@ -22,11 +14,6 @@ class QSpinBox;
 class Sender : public QDialog
 {
     Q_OBJECT
-    raspicam::RaspiCam_Cv Camera;
-    std::vector<uchar> compressed_data;
-    cv::CascadeClassifier faceClassifier;
-    cv::Mat flip_image;
-
 
 public:
     Sender(QWidget *parent = 0);
@@ -37,13 +24,6 @@ private slots:
     void sendDatagram();
 
 private:
-    void takePicture();
-    void faceDetection();
-    void imageCompression();
-    void affichageVideo();
-    QImage MatToQimage(cv::Mat inMat);
-
-//------- variable----------
     QLabel *statusLabel;
     QLabel *ttlLabel;
     QSpinBox *ttlSpinBox;
@@ -54,8 +34,6 @@ private:
     QTimer *timer;
     QHostAddress groupAddress;
     int messageNo;
-    QLabel *imageLbl;
-
 };
 
 #endif

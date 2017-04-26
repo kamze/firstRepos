@@ -31,7 +31,6 @@ public:
 
 private slots:
     void sessionOpened();
-    //void sendFortune();
     void sendPacket();
 
 
