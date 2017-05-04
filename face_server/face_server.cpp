@@ -2,10 +2,13 @@
 #include <QtNetwork>
 #include <QTimer>
 #include <QDebug>
+#include <QTime>
 
 #include <stdlib.h>
 
 #include "face_server.h"
+#include "RTIMULib.h"
+#include "RTIMUSettings.h"
 
 Server::Server(QWidget *parent)
     : QDialog(parent)
@@ -14,7 +17,29 @@ Server::Server(QWidget *parent)
     , tcpServer(Q_NULLPTR)
     , networkSession(0)
 {
-    //-------------------camera setup------------------------
+    //-----------sensor--------------
+        settings = new RTIMUSettings("RTIMULib");
+        imu = RTIMU::createIMU(settings);
+        pressure = RTPressure::createPressure(settings);
+
+        if ((imu == NULL) || (imu->IMUType() == RTIMU_TYPE_NULL)) {
+            printf("No IMU found\n");
+            exit(1);
+        }
+        //  This is an opportunity to manually override any settings before the call IMUInit
+        //  set up IMU
+        imu->IMUInit();
+        //  this is a convenient place to change fusion parameters
+        imu->setSlerpPower(0.02);
+        imu->setGyroEnable(true);
+        imu->setAccelEnable(true);
+        imu->setCompassEnable(true);
+        //  set up pressure sensor
+        if (pressure != NULL)
+            pressure->pressureInit();
+        //  set up for rate timer
+
+        //-------------------camera setup------------------------
     if(!faceClassifier.load("/home/pi/TP_SY22/haarcascade_frontalface_alt.xml")){exit(-1);}
 //use frameTimer to controle frame frequency
     QTimer *frameTimer =  new QTimer(this);
@@ -28,7 +53,7 @@ Server::Server(QWidget *parent)
 //setup the image type : here is colorful we should change CV_8UC3 to block and white CV_8UC1 is gray
     Camera.set( CV_CAP_PROP_FORMAT, CV_8UC3 );
     Camera.open();
-
+//---------------------camera ends here------------------------
 
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     statusLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
@@ -100,20 +125,41 @@ Server::Server(QWidget *parent)
 //-----------------------END constructor---------------------------------------
 //fonction pour envoyé
 
+//-----------------------sensor----------------------
+void Server::set_up_sensors_values(){
+    //  poll at the rate recommended by the IMU
 
+    while (imu->IMURead()) {
+        RTIMU_DATA imuData = imu->getIMUData();
+        now = RTMath::currentUSecsSinceEpoch();
 
-void Server::sendPacket()
-{
-takePicture();
-faceDetection();
-imageCompression();
-affichageVideo();
-packetGeneration();
+            if (pressure != NULL) {
+                pressure->pressureRead(imuData);
+            /*    qDebug() << "pressure : " << imuData.pressure;
+                qDebug() << "height above sea: " << RTMath::convertPressureToHeight(imuData.pressure);
+                qDebug() << "temperature : " << imuData.temperature;*/
+
 }
 
-//fonction pour avoir l'image
-void Server::takePicture()
-{
+    }
+}
+
+void Server::faceDetection(){
+    cv::Mat grey;
+    std::vector<cv::Rect> faces;
+// transforme l'image en gray
+    cv::cvtColor(flip_image,grey,CV_BGR2GRAY);
+// on use gray car c'st plus simple de tecté gray que colour
+    faceClassifier.detectMultiScale(grey,faces);
+
+    //fonction detection visage et draw square on face
+    for(int i=0; i < faces.size();i++){
+        cv::rectangle(flip_image,faces[i],cv::Scalar(255,0,0));
+    }
+}
+
+
+void Server::takePicture(){
     cv::Mat image;
     //Start capture
     Camera.grab();
@@ -123,39 +169,53 @@ void Server::takePicture()
     cv::flip(image,flip_image,0);
 }
 
-//fonction detection visage et draw square on face
-void Server::faceDetection()
-{
-    cv::Mat grey;
-    std::vector<cv::Rect> faces;
-// transforme l'image en gray
-    cv::cvtColor(flip_image,grey,CV_BGR2GRAY);
-// on use gray car c'st plus simple de tecté gray que colour
-    faceClassifier.detectMultiScale(grey,faces);
-
-    for(int i=0; i < faces.size();i++){
-        cv::rectangle(flip_image,faces[i],cv::Scalar(255,0,0));
-    }
+void Server::sendPacket(){
+takePicture();
+faceDetection();
+imageCompression();
+affichageVideo();
+packetGeneration();
 }
 
-//fonction compression image
-void Server::setupNewConnection(){
+QByteArray Server::packetGeneration(){
+    QByteArray block;
+        QDataStream out(&block,QIODevice::WriteOnly);
+        out.setVersion(QDataStream::Qt_5_0);
 
-    QTcpSocket *clientSock = tcpServer->nextPendingConnection();
-    //connect(clientSock,&QAbstractSocket::disconnected,clientSock,&QObject::deleteLater);
+        QTime time = QTime::currentTime();
+        QString format= "hh:mm:ss.zzz";
+        QString timeString = time.toString(format);
+        qDebug() << "time : " << timeString;
+        qDebug() << "time : " << timeString;
 
-    clientsConnectees.push_back(clientSock);
+        out << timeString;
+
+        out << (quint32) compressed_data.size();
+
+
+
+        for(int i=0;i < compressed_data.size();i++){
+            out << compressed_data[i];
 }
-void Server::imageCompression()
-{
-    std::vector<int> params;
-    params.push_back(CV_IMWRITE_JPEG_QUALITY);
-    params.push_back(20);
-    cv::imencode(".jpg",flip_image,compressed_data,params);
+        for(int i = 0; i < clientsConnectees.size(); i++){
+
+            clientsConnectees[i]->write(block);
+       }
+
+
+        qDebug() << "Size avaiable : " << block.size();
+
+    return block;
 }
-void Server::affichageVideo()
-{
-    imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(flip_image)));
+
+QImage Server::MatToQimage(cv::Mat inMat){
+    QImage image( inMat.data,
+                              inMat.cols, inMat.rows,
+                              static_cast<int>(inMat.step),
+                              QImage::Format_RGB888 );
+
+    return image;
+
 }
 
 void Server::sessionOpened()
@@ -202,37 +262,23 @@ void Server::sessionOpened()
 
 }
 
-QByteArray Server::packetGeneration(){
-    QByteArray block;
-        QDataStream out(&block,QIODevice::WriteOnly);
-        out.setVersion(QDataStream::Qt_5_0);
+void Server::setupNewConnection(){
 
-        //out << (quint32) (compressed_data.size() + 4);
+    QTcpSocket *clientSock = tcpServer->nextPendingConnection();
+    //connect(clientSock,&QAbstractSocket::disconnected,clientSock,&QObject::deleteLater);
 
-        out << (quint32) compressed_data.size();
-
-        for(int i=0;i < compressed_data.size();i++){
-            out << compressed_data[i];
+    clientsConnectees.push_back(clientSock);
 }
-        for(int i = 0; i < clientsConnectees.size(); i++){
-
-            clientsConnectees[i]->write(block);
-       }
-
-
-        qDebug() << "Size avaiable : " << block.size();
-
-    return block;
+void Server::imageCompression()
+{
+    std::vector<int> params;
+    params.push_back(CV_IMWRITE_JPEG_QUALITY);
+    params.push_back(20);
+    cv::imencode(".jpg",flip_image,compressed_data,params);
 }
-
-QImage Server::MatToQimage(cv::Mat inMat){
-    QImage image( inMat.data,
-                              inMat.cols, inMat.rows,
-                              static_cast<int>(inMat.step),
-                              QImage::Format_RGB888 );
-
-    return image;
-
+void Server::affichageVideo()
+{
+    imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(flip_image)));
+    set_up_sensors_values();
 }
-
 

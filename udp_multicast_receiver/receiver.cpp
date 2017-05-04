@@ -1,5 +1,6 @@
 #include <QtWidgets>
 #include <QtNetwork>
+#include <QTime>
 
 #include "receiver.h"
 
@@ -45,8 +46,26 @@ void Receiver::processPendingDatagrams()
         qDebug() << "datagram.size : " << datagram.size();
         std::vector<uchar> compressed_data;
         quint8 b;
+//-------------le temps---------------
+        QTime time = QTime::currentTime();
+        QString format= "hh:mm:ss.zzz";
+        QString timeClient = time.toString(format);
+        QString timeServer;
 
-        for(int i=0;i < datagram.size();i++){
+        /*timeServer = datagram.data();
+        char k = datagram.at(0);
+        char g = datagram.at(1);
+        qDebug() << "k : " << k;
+        qDebug() << "g : " << g;*/
+
+        for(int i=0;i < 12;i++){
+             b= datagram.at(i);
+            timeServer.append(b);
+}
+        qDebug() << "time client : " << timeClient;
+        qDebug() << "time server : " << timeServer;
+
+        for(int i=12;i < datagram.size();i++){
              b= datagram.at(i);
             compressed_data.push_back((uchar)b);
 }

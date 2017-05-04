@@ -20,6 +20,8 @@ HEADERS  += face_server.h
 
 FORMS    += face_server.ui
 
-LIBS += -L/opt/vc/lib/  -lraspicam -lraspicam_cv -lmmal -lmmal_core -lmmal_util
+LIBS += -L/opt/vc/lib/  -lraspicam -lraspicam_cv -lmmal -lmmal_core -lmmal_util -lRTIMULib
 CONFIG += link_pkgconfig
 PKGCONFIG += opencv
+#LDFLAGS += -lRTIMULib
+

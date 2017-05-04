@@ -3,6 +3,7 @@
 
 #include <QtWidgets>
 #include <QtNetwork>
+#include <QTime>
 
 Client::Client(QWidget *parent)
     : QDialog(parent)
@@ -146,8 +147,16 @@ void Client::decode(){
     quint8 b;
     quint32 imgSize;
 // si on veut que utiliser ip et non pas via localhost faut decommenter
-    if(tcpSocket->waitForReadyRead()){
-        qDebug() << "waitForReadyRead: bytesAvailable : " << tcpSocket->bytesAvailable();
+   // if(tcpSocket->waitForReadyRead()){
+
+    QTime time = QTime::currentTime();
+    QString format= "hh:mm:ss.zzz";
+    QString timeClient = time.toString(format);
+    qDebug() << "time client : " << timeClient;
+    QString timeServer;
+    in >> timeServer;
+    qDebug() << "time server : " << timeServer;
+
         in >> imgSize;
         qDebug() << "imgSize : " << imgSize;
 
@@ -155,7 +164,7 @@ void Client::decode(){
             in >> b;
             compressed_data.push_back((uchar)b);
 }
-    }
+   // }
     cv::Mat image = cv::imdecode(compressed_data,-1);
 
     imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(image)));

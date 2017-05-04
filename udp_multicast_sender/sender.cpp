@@ -1,5 +1,6 @@
 #include <QtWidgets>
 #include <QtNetwork>
+#include <QTime>
 
 #include "sender.h"
 
@@ -81,14 +82,16 @@ void Sender::sendDatagram()
 {
     statusLabel->setText(tr("Now sending datagram %1").arg(messageNo));
 QByteArray datagram;
-qDebug() << "datagram :Size avaiable : " << datagram.size();
 
-quint32 data_size= (quint32) compressed_data.size();
-/*
-for(int i=0;i < 4;i++){
-    datagram.append( data_size >>(i*8));
-}
-*/
+QTime time = QTime::currentTime();
+QString format= "hh:mm:ss.zzz";
+QString timeServer = time.toString(format);
+qDebug() << "time server : " << timeServer;
+
+datagram.append( timeServer);
+
+//quint32 data_size= (quint32) compressed_data.size();
+//datagram.append( data_size);
 
 imageCompression();
     for(int i=0;i < compressed_data.size();i++){
