@@ -49,7 +49,13 @@ private:
     QLineEdit *portLineEdit;
     QLabel *statusLabel;
     QLabel *statusLabel1;
+    QLabel *timeServer_Label;
+    QLabel *timeClient_Label;
     QPushButton *getFortuneButton;
+
+    QLabel *pression_Label;
+    QLabel *temperature_Label;
+    QLabel *altitude_Label;
 
     QTcpSocket *tcpSocket;
     QString currentFortune;

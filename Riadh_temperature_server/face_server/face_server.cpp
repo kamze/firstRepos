@@ -8,6 +8,7 @@
 #include "face_server.h"
 #include "RTIMULib.h"
 #include "RTIMUSettings.h"
+// QTHread QObject QCoreApplication 'moeToThread
 
 Server::Server(QWidget *parent)
     : QDialog(parent)
@@ -45,7 +46,7 @@ Server::Server(QWidget *parent)
     qDebug()<<"init timer";
     QTimer *frameTimer =  new QTimer(this);
     connect(frameTimer,&QTimer::timeout,this,&Server::sendPacket);
-    frameTimer->setInterval(9);
+    frameTimer->setInterval(1);
     frameTimer->start();
     qDebug()<<"init camera";
     Camera.set( CV_CAP_PROP_FRAME_WIDTH, 256 );
@@ -139,25 +140,23 @@ void Server::set_up_sensors_values(){
 
         if (pressure != NULL) {
             pressure->pressureRead(imuData);
-            pression= imuData.pressure;
-            // calibration de capteur
-            humidity= RTMath::convertPressureToHeight(imuData.pressure) + 130.01;
-            temperature= imuData.temperature;
-            qDebug() << "pression: " << pression;
-            qDebug() << "height above sea: " <<humidity;
-            qDebug() << "temperature : " << temperature;
+            qDebug() << "pressure : " << imuData.pressure;
+            qDebug() << "height above sea: " << RTMath::convertPressureToHeight(imuData.pressure);
+            qDebug() << "temperature : " << imuData.temperature;
+
         }
 
     }
 }
 
 void Server::faceDetection(){
-    std::vector<cv::Rect> faces;
     cv::Mat grey;
+    std::vector<cv::Rect> faces;
     // transforme l'image en gray
     cv::cvtColor(flip_image,grey,CV_BGR2GRAY);
     // on use gray car c'st plus simple de tecté gray que colour
     faceClassifier.detectMultiScale(grey,faces);
+
     //fonction detection visage et draw square on face
     for(int i=0; i < faces.size();i++){
         cv::rectangle(flip_image,faces[i],cv::Scalar(255,0,0));
@@ -188,28 +187,13 @@ QByteArray Server::packetGeneration(){
     QDataStream out(&block,QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_0);
 
+    //out << (quint32) (compressed_data.size() + 4);
 
-    out << pression;
-    out << humidity;
-    out << temperature;
-
-//------------Time on the server side-----------------
-    QTime time = QTime::currentTime();
-    QString format= "hh:mm:ss.zzz";
-    QString timeString = time.toString(format);
-    qDebug() << "time : " << timeString;
-    // send the time
-    out << timeString;
-
-
-// -------- send the image----------
-    //serializing compressed imge's size
     out << (quint32) compressed_data.size();
-// serializing every byte of the img
+
     for(int i=0;i < compressed_data.size();i++){
         out << compressed_data[i];
     }
-//  sending the packet for every connected client
     for(int i = 0; i < clientsConnectees.size(); i++){
 
         clientsConnectees[i]->write(block);
@@ -276,8 +260,10 @@ void Server::sessionOpened()
 }
 
 void Server::setupNewConnection(){
-    // every time a client want to connect we add him to the buffer
+
     QTcpSocket *clientSock = tcpServer->nextPendingConnection();
+    //connect(clientSock,&QAbstractSocket::disconnected,clientSock,&QObject::deleteLater);
+
     clientsConnectees.push_back(clientSock);
 }
 void Server::imageCompression()

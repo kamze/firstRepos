@@ -22,7 +22,7 @@ public:
 
 private slots:
     void processPendingDatagrams();
-
+void decode();
 private:
     QLabel *statusLabel;
     QPushButton *quitButton;
@@ -30,6 +30,12 @@ private:
     QHostAddress groupAddress;
     QLabel *imageLbl;
     QImage MatToQimage(cv::Mat img);
+    QLabel *timeServer_Label;
+    QLabel *timeClient_Label;
+
+    QLabel *pression_Label;
+    QLabel *temperature_Label;
+    QLabel *altitude_Label;
 
 };
 

@@ -44,12 +44,18 @@ Client::Client(QWidget *parent)
     hostLabel->setBuddy(hostCombo);
     QLabel *portLabel = new QLabel(tr("S&erver port:"));
     portLabel->setBuddy(portLineEdit);
+    timeServer_Label = new QLabel();
+    timeClient_Label = new QLabel();
+    pression_Label = new QLabel();
+    temperature_Label = new QLabel();
+    altitude_Label = new QLabel();
 
     statusLabel = new QLabel(tr("This examples requires that you run the "
                                 "Fortune Server example as well."));
     statusLabel1 = new QLabel();
 
     imageLbl = new QLabel();
+
 
     getFortuneButton->setDefault(true);
     getFortuneButton->setEnabled(false);
@@ -95,6 +101,11 @@ Client::Client(QWidget *parent)
     mainLayout->addWidget(portLineEdit, 1, 1);
     mainLayout->addWidget(buttonBox, 2,  0, 1, 2);
     mainLayout->addWidget(imageLbl, 2, 2);
+    mainLayout->addWidget(timeServer_Label, 3, 1);
+    mainLayout->addWidget(timeClient_Label, 4, 1);
+    mainLayout->addWidget(pression_Label, 5, 1);
+    mainLayout->addWidget(temperature_Label, 6, 1);
+    mainLayout->addWidget(altitude_Label, 7, 1);
 
     setWindowTitle(QGuiApplication::applicationDisplayName());
     portLineEdit->setFocus();
@@ -135,7 +146,7 @@ void Client::requestNewFortune()
                              portLineEdit->text().toInt());
 }
 
-
+// QTHread QObject QCoreApplication 'moeToThread
 void Client::decode(){
 
     QDataStream in(tcpSocket);
@@ -147,16 +158,52 @@ void Client::decode(){
     quint8 b;
     quint32 imgSize;
 // si on veut que utiliser ip et non pas via localhost faut decommenter
+    //  --------------------sensor-----------------
+    double pression;
+    double temperature;
+    double altitude;
+
+    in >> pression;
+    in >> altitude;
+    in >> temperature;
+
+    QString phrase_pression= "pression : ";
+    phrase_pression.append(QString::number(pression));
+    QString phrase_altitude= "height above sea: ";
+    phrase_altitude.append(QString::number(altitude));
+    QString phrase_temperature= "temperature : " ;
+    phrase_temperature.append(QString::number(temperature));
+
+    pression_Label->setText(phrase_pression);
+    temperature_Label->setText(phrase_temperature);
+    altitude_Label->setText(phrase_altitude);
+
+    qDebug() << "pressure : " << pression;
+    qDebug() << "height above sea: " <<altitude;
+    qDebug() << "temperature : " << temperature;
+
+
    // if(tcpSocket->waitForReadyRead()){
 
+//  --------------------time-----------------
     QTime time = QTime::currentTime();
     QString format= "hh:mm:ss.zzz";
-    QString timeClient = time.toString(format);
-    qDebug() << "time client : " << timeClient;
+    QString timeClient_display = "Client: " ;
     QString timeServer;
-    in >> timeServer;
-    qDebug() << "time server : " << timeServer;
+    QString timeServer_display;
 
+    timeClient_display.append(time.toString(format));
+    in >> timeServer;
+    timeServer_display= "Server: ";
+    timeServer_display.append(timeServer);
+
+    qDebug() << timeClient_display;
+    qDebug() << timeServer_display;
+
+    timeServer_Label->setText(timeServer_display);
+    timeClient_Label->setText(timeClient_display);
+
+//--------------size & img---------------
         in >> imgSize;
         qDebug() << "imgSize : " << imgSize;
 
@@ -167,7 +214,12 @@ void Client::decode(){
    // }
     cv::Mat image = cv::imdecode(compressed_data,-1);
 
+
     imageLbl->setPixmap(QPixmap::fromImage(MatToQimage(image)));
+
+
+
+
     qDebug() << "----------------------------";
 }
 
